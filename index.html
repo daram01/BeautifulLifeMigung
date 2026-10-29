@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>THE LABYRINTH</title>
+  <style>
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(22, 27, 34, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #8b5cf6;
+      --primary-glow: rgba(139, 92, 246, 0.35);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --error: #f43f5e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 10%, #1e1b4b 0%, var(--bg) 70%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+    }
+
+    /* 배경 은은한 발광 효과 */
+    .glow-sphere {
+      position: fixed;
+      width: 320px;
+      height: 320px;
+      background: var(--primary-glow);
+      filter: blur(100px);
+      border-radius: 50%;
+      top: 15%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 520px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 36px 28px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: transform 0.2s ease;
+    }
+
+    /* 진행도 바 */
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 14%;
+      background: linear-gradient(90deg, #6366f1, #a855f7);
+      border-radius: 99px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #a78bfa;
+      background: rgba(139, 92, 246, 0.12);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 16px;
+      word-break: keep-all;
+    }
+
+    .clue-image {
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 18px;
+      display: none;
+    }
+
+    .story {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+      white-space: pre-line;
+      word-break: keep-all;
+    }
+
+    .input-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 16px;
+      color: #fff;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    button.btn-submit {
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 0 22px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    button.btn-submit:active {
+      transform: scale(0.97);
+    }
+
+    .feedback {
+      font-size: 14px;
+      min-height: 22px;
+      font-weight: 500;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feedback.error { color: var(--error); }
+    .feedback.success { color: var(--success); }
+
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 16px;
+    }
+
+    .btn-reset {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* 틀렸을 때 카드 흔들림 애니메이션 */
+    .shake {
+      animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(3px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
+      40%, 60% { transform: translate3d(5px, 0, 0); }
+    }
+
+    /* 엔딩 화면 */
+    #endingView {
+      display: none;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .ending-icon {
+      font-size: 54px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-sphere"></div>
+
+  <div class="container" id="mainContainer">
+    <!-- 게임 진행 화면 -->
+    <div id="gameView">
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <span class="badge" id="stageBadge">GATE 1 / 7</span>
+      <h2 class="title" id="stageTitle">방 이름</h2>
+
+      <img id="stageImg" class="clue-image" alt="단서 이미지">
+      <p class="story" id="stageStory">문제 지문이 들어가는 자리입니다.</p>
+
+      <form onsubmit="checkAnswer(event)">
+        <div class="input-box">
+          <input type="text" id="answerInput" placeholder="정답을 입력하세요" autocomplete="off" autofocus>
+          <button type="submit" class="btn-submit">확인</button>
+        </div>
+      </form>
+      <div class="feedback" id="feedback"></div>
+
+      <div class="footer">
+        <button class="btn-reset" onclick="confirmReset()">처음부터 다시하기</button>
+      </div>
+    </div>
+
+    <!-- 7문제 모두 클리어 시 나오는 엔딩 화면 -->
+    <div id="endingView">
+      <div class="ending-icon">🏆</div>
+      <h2 class="title" style="font-size: 26px; margin-bottom: 12px;">LABYRINTH CLEARED</h2>
+      <p class="story" style="margin-bottom: 28px;">축하합니다! 친구들과 함께 모든 미궁을 탈출하셨습니다.</p>
+      <button class="btn-submit" style="padding: 14px 28px; width: 100%;" onclick="confirmReset()">다시 플레이하기</button>
+    </div>
+  </div>
+
+  <script>
+    // ==============================================================
+    // [총 7문제 데이터 세팅]
+    // 1. title: 문제 소제목
+    // 2. story: 문제 지문 (\n으로 줄바꿈 가능)
+    // 3. image: 이미지가 필요하면 파일명이나 링크 (없으면 "" 빈값)
+    // 4. hash: 사용자가 입력할 정답의 SHA-256 해시값
+    // ==============================================================
+    const stages = [
+      {
+        title: "제 1관문: 어둠의 회랑",
+        story: "벽면에 희미한 문구가 새겨져 있다.\n\n\"낮에는 몸을 감추고 밤이 되면 홀로 세상을 비추는 자. 스스로 빛을 내지 못하나 가장 밝게 빛나는 이것은 무엇인가?\"",
+        image: "",
+        hash: "3b08b8b91950d249f3945952dbd48fd0ec46979ff10be69752945d82855160bb" // 정답: 달
+      },
+      {
+        title: "제 2관문: 침묵의 도서관",
+        story: "바닥에 떨어진 낡은 종이에 알파벳 4개가 뒤섞여 적혀 있다.\n\n[ P - L - E - A - P ]\n\n빨갛고 달콤한 과일의 철자를 바르게 나열하시오.",
+        image: "",
+        hash: "0e0ee76b9281a673b22cfd826a798b3f2c25381a179574f83b1f3c306d15b025" // 정답: apple
+      },
+      {
+        title: "제 3관문: 거울의 방",
+        story: "숫자들이 규칙적으로 나열되어 있다.\n\n2, 4, 8, 16, 32, [ ? ]\n\n빈칸에 들어갈 숫자는?",
+        image: "",
+        hash: "e7cf3ef4f17c3999a94f2c6f612e8a888e5b1026878e4e19398b23bd38ec221a" // 정답: 64
+      },
+      {
+        title: "제 4관문: 시간의 방",
+        story: "초침 소리만 가득한 방.\n\n\"하루는 24시간이고 한 시간은 60분이다. 그렇다면 하루는 총 몇 분인가?\"\n(숫자만 입력)",
+        image: "",
+        hash: "049308a9d18728d84459d873115c54d3ca6ae5d105c3fb46e147171d99434e36" // 정답: 1440
+      },
+      {
+        title: "제 5관문: 속삭이는 벽",
+        story: "벽에서 들려오는 목소리:\n\n\"나는 모든 것을 비추지만 스스로는 보지 못한다. 내가 깨지면 7년의 불운이 찾아온다는 미신이 있다. 나는 무엇인가?\"",
+        image: "",
+        hash: "45050f26ce5a4ae1eb11b68a41dd44bc4ad758778d910f5e1f0e21a221f574d7" // 정답: 거울
+      },
+      {
+        title: "제 6관문: 암호 해독실",
+        story: "이진수 힌트가 깜빡인다.\n\n01001111 01010000 01000101 01001110\n\n이 신호가 가리키는 4글자 영단어는?",
+        image: "",
+        hash: "45f949bb26786a07ec8c9735d564fa72c3d52c219660fe48858db1f349c25da7" // 정답: open
+      },
+      {
+        title: "제 7관문: 최후의 봉인",
+        story: "마지막 문 앞의 석판:\n\n\"시작이 있으면 끝이 있고, 만남이 있으면 [ ? ]이/가 있다.\"\n(2글자)",
+        image: "",
+        hash: "ba618a8b0c80081d451310196238b72e90fec9ebf399f984814d9b4b0eb0d507" // 정답: 이별
+      }
+    ];
+
+    // SHA-256 해시 변환 함수
+    async function sha256(str) {
+      const buffer = new TextEncoder().encode(str);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+      return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+
+    // 로컬 스토리지에서 진행 상태 복구
+    let currentStage = parseInt(localStorage.getItem("labyrinth_current_step") || "0", 10);
+
+    function renderStage() {
+      const container = document.getElementById("mainContainer");
+      const gameView = document.getElementById("gameView");
+      const endingView = document.getElementById("endingView");
+      const feedback = document.getElementById("feedback");
+      const input = document.getElementById("answerInput");
+
+      feedback.textContent = "";
+      feedback.className = "feedback";
+      input.value = "";
+
+      // 7문제 모두 통과 시 엔딩 표출
+      if (currentStage >= stages.length) {
+        gameView.style.display = "none";
+        endingView.style.display = "block";
+        return;
+      }
+
+      gameView.style.display = "block";
+      endingView.style.display = "none";
+
+      const data = stages[currentStage];
+      
+      // 진행도 바 및 뱃지 업데이트
+      const progressPercent = Math.round(((currentStage + 1) / stages.length) * 100);
+      document.getElementById("progressFill").style.width = `${progressPercent}%`;
+      document.getElementById("stageBadge").innerText = `GATE ${currentStage + 1} / ${stages.length}`;
+      document.getElementById("stageTitle").innerText = data.title;
+      document.getElementById("stageStory").innerText = data.story;
+
+      // 이미지 요소 제어
+      const imgEl = document.getElementById("stageImg");
+      if (data.image && data.image.trim() !== "") {
+        imgEl.src = data.image;
+        imgEl.style.display = "block";
+      } else {
+        imgEl.style.display = "none";
+      }
+    }
+
+    async function checkAnswer(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById("answerInput");
+      const feedback = document.getElementById("feedback");
+      const container = document.getElementById("mainContainer");
+
+      // 공백 제거 및 소문자 정규화
+      const userText = inputEl.value.replace(/\s+/g, "").toLowerCase();
+      if (!userText) return;
+
+      const userHash = await sha256(userText);
+
+      if (userHash === stages[currentStage].hash) {
+        feedback.className = "feedback success";
+        feedback.innerHTML = "✓ 정답입니다! 다음 방의 문이 열립니다...";
+        currentStage++;
+        localStorage.setItem("labyrinth_current_step", currentStage);
+
+        setTimeout(() => {
+          renderStage();
+          inputEl.focus();
+        }, 600);
+      } else {
+        feedback.className = "feedback error";
+        feedback.innerHTML = "✕ 문이 반응하지 않습니다. (오답)";
+        
+        // 카드 흔들림 애니메이션 트리거
+        container.classList.remove("shake");
+        void container.offsetWidth; // 리플로우 강제
+        container.classList.add("shake");
+
+        inputEl.select();
+      }
+    }
+
+    function confirmReset() {
+      if (confirm("첫 번째 관문으로 되돌아가시겠습니까?")) {
+        currentStage = 0;
+        localStorage.removeItem("labyrinth_current_step");
+        renderStage();
+      }
+    }
+
+    // 초기 실행
+    renderStage();
+  </script>
+</body>
+</html>
